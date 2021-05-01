@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+DESCRIPTION = 'A smart calculator capable of handling addition and subtraction' \
+              'operations. \nUser is prompted to enter the expression they want to ' \
+              'evaluate and the evaluation result is printed out.'
 
 if __name__ == '__main__':
     while True:
@@ -7,14 +10,10 @@ if __name__ == '__main__':
             print('Bye!')
             break
         elif expr == '/help':
-            print('A simple calculator that only adds values as at now')
+            print(DESCRIPTION)
 
         elif expr == '':
             continue
 
-        elif len(expr.split()) == 1:
-            print(expr)
-
         else:
-            split_expr = list(map(lambda x: int(x), expr.split()))
-            print(sum(split_expr))
+            print(eval(expr))
