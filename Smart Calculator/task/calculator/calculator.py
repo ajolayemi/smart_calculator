@@ -1,14 +1,18 @@
 #!/usr/bin/env python
+import re
 
 DESCRIPTION = 'A smart calculator capable of handling addition and subtraction' \
               'operations. \nUser is prompted to enter the expression they want to ' \
               'evaluate and the evaluation result is printed out.'
 
 SIGNS = ['-', '+']
+invalid_expressions = re.compile(r'^[a-zA-Z +-]+$|[+-]$|^[\w\d ]+ [\w\d]+$')
+variable_pattern = re.compile(r'^[a-zA-Z]+$')
+variable_value_ptn = re.compile(r'^[a-zA-Z]+$|^[\d]+$')
+commands = ['/help', '/exit']
 
 
 class Calculator:
-
     def __init__(self, expression: str):
         self.expression = expression
         self.is_complex_expr = False
@@ -17,11 +21,13 @@ class Calculator:
         self.is_subtract = all((self.expression.count('-', 1) == 1,
                                 self.expression.count('+', 1) == 0,
                                 not self.expression.startswith('-')))
+        self.is_var = '=' in self.expression
 
         self.is_complex()
 
         self.single_expr = all((not self.is_add, not self.is_subtract,
-                                not self.is_complex))
+                                not self.is_complex, not self.is_var))
+        self.var_value_dict = {}
 
     def module_caller(self):
         """ Decides which module to call"""
@@ -33,6 +39,11 @@ class Calculator:
             return self.complex_nums()
         else:
             return self.expression
+
+    def check_variable_name(self):
+        """ Checks to see that variable name is valid. """
+        return re.search(variable_pattern,
+                         self.expression[:self.expression.index('=')]) is not None
 
     def complex_nums(self):
         """ Deals with complex expressions. """
@@ -114,9 +125,14 @@ class Calculator:
 
 
 def main():
+
     while True:
         user_expr = input()
-        if not user_expr:
+        if user_expr.startswith('/') and user_expr not in commands:
+            print('Unknown command')
+        elif re.search(invalid_expressions, user_expr):
+            print('Invalid expression')
+        elif not user_expr:
             continue
         elif user_expr == '/exit':
             print('Bye!')
@@ -129,4 +145,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    ex = 'a =2'
+    print(Calculator(ex).check_variable_name())
