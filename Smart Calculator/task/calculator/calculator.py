@@ -40,10 +40,15 @@ class Calculator:
         else:
             return self.expression
 
+    def check_variable_val_name(self):
+        """ Checks to see that the value of a variable is valid. """
+        return re.search(variable_value_ptn,
+                         self.expression[self.expression.index('=') + 1:].strip()) is not None
+
     def check_variable_name(self):
         """ Checks to see that variable name is valid. """
         return re.search(variable_pattern,
-                         self.expression[:self.expression.index('=')]) is not None
+                         self.expression[:self.expression.index('=')].strip()) is not None
 
     def complex_nums(self):
         """ Deals with complex expressions. """
@@ -145,5 +150,5 @@ def main():
 
 
 if __name__ == '__main__':
-    ex = 'a =2'
-    print(Calculator(ex).check_variable_name())
+    ex = 'a =a2a'
+    print(Calculator(ex).check_variable_val_name())
