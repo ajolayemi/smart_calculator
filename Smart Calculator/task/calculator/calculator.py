@@ -6,17 +6,43 @@ DESCRIPTION = 'A smart calculator capable of handling addition and subtraction' 
               'evaluate and the evaluation result is printed out.'
 
 SIGNS = ['-', '+']
-invalid_expressions = re.compile(r'^[a-zA-Z +-]+$|[+-]$|^[\w\d ]+ [\w\d]+$')
+invalid_expressions = re.compile(r'^[+-]+$|[+-]$|^[\w\d ]+ [\w\d]+$')
 variable_pattern = re.compile(r'^[a-zA-Z]+$')
 variable_value_ptn = re.compile(r'^[a-zA-Z]+$|^[\d]+$')
+variable_request = re.compile(r'^[a-zA-Z]+$')
 commands = ['/help', '/exit']
 
 
 class Calculator:
+    var_value_dict = {}
+
     def __init__(self, expression: str):
         self.expression = expression
-        self.is_var = '=' in self.expression
-        self.var_value_dict = {}
+        self.is_var_declaration = '=' in self.expression
+
+    def module_caller(self):
+        """ Decides which module to call for calculation. """
+        if self.is_var_declaration:
+            self.var_declaration_handler()
+        else:
+            self.expr_evaluator()
+
+    def var_declaration_handler(self):
+        """ Responds to when user is trying to declare new variables. """
+        variable_name = self.expression[:self.expression.find('=')].strip()
+        variable_value = self.expression[self.expression.find('=') + 1:].strip()
+        if not self.check_variable_name(variable_name):
+            print('Invalid identifier')
+        elif not self.check_variable_val_name(variable_value) or \
+                self.expression.count('=') > 1:
+            print('Invalid assignment')
+        elif variable_value.isalpha() and variable_value not in Calculator.var_value_dict:
+            print('Unknown variable')
+        else:
+            if variable_value.isalpha():
+                Calculator.var_value_dict[variable_name] = Calculator.var_value_dict.get(variable_value)
+            else:
+                Calculator.var_value_dict[variable_name] = variable_value
 
     @staticmethod
     def check_variable_val_name(val_name: str):
@@ -29,8 +55,7 @@ class Calculator:
         return re.search(variable_pattern, var_name) is not None
 
     def expr_evaluator(self):
-        """ Deals with complex expressions. """
-
+        """ Handles calculations. """
         value = self.expr_parser()
         try:
             result = 0
@@ -100,7 +125,7 @@ def main():
             print(DESCRIPTION)
         else:
             expr_class = Calculator(user_expr)
-            print(expr_class.expr_evaluator())
+            print(expr_class.module_caller())
 
 
 if __name__ == '__main__':
