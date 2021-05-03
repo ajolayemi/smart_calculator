@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 import re
 
-DESCRIPTION = 'A smart calculator capable of handling addition and subtraction' \
-              'operations. \nUser is prompted to enter the expression they want to ' \
+DESCRIPTION = 'A smart calculator capable of handling the following arithmetic operations:\n' \
+              '1. Addition and subtraction of two or more numbers\n' \
+              '2. Variable declaration and usage in expressions later on\n' \
+              'User is prompted to enter the expression they want to ' \
               'evaluate and the evaluation result is printed out.'
 
 SIGNS = ['-', '+']
@@ -10,6 +12,7 @@ invalid_expressions = re.compile(r'^[+-]+$|[+-]$|^[\w\d ]+ [\w\d]+$')
 variable_pattern = re.compile(r'^[a-zA-Z]+$')
 variable_value_ptn = re.compile(r'^[a-zA-Z]+$|^[\d]+$')
 variable_request = re.compile(r'^[a-zA-Z]+$')
+variable_expression_ptn = re.compile(r'^[\w +-]+[ +-]+[\w]$')
 commands = ['/help', '/exit']
 
 
@@ -19,13 +22,30 @@ class Calculator:
     def __init__(self, expression: str):
         self.expression = expression
         self.is_var_declaration = '=' in self.expression
+        self.is_var_request = re.search(variable_request, self.expression)
+        self.is_var_expression = re.search(variable_expression_ptn, self.expression)
 
     def module_caller(self):
         """ Decides which module to call for calculation. """
         if self.is_var_declaration:
             self.var_declaration_handler()
+
+        elif self.is_var_request:
+            self.var_request_handler()
+
+        elif self.is_var_expression:
+            self.variable_expression_eval()
+
         else:
             self.expr_evaluator()
+
+    def var_request_handler(self):
+        """ Responds to when user is requesting to view the value of a
+        variable. """
+        if self.expression not in Calculator.var_value_dict:
+            print('Unknown variable')
+        else:
+            print(Calculator.var_value_dict.get(self.expression))
 
     def var_declaration_handler(self):
         """ Responds to when user is trying to declare new variables. """
@@ -45,17 +65,52 @@ class Calculator:
                 Calculator.var_value_dict[variable_name] = variable_value
 
     @staticmethod
-    def check_variable_val_name(val_name: str):
-        """ Checks to see that the value of a variable is valid. """
+    def check_variable_val_name(val_name: str) -> True:
+        """ Checks to see that the value of a variable is valid.
+        :returns True if val_name is valid
+        :returns False otherwise. """
         return re.search(variable_value_ptn, val_name) is not None
 
     @staticmethod
     def check_variable_name(var_name: str):
-        """ Checks to see that variable name is valid. """
+        """ Checks to see that variable name is valid.
+        :returns True if var_name is valid.
+        :returns False otherwise"""
         return re.search(variable_pattern, var_name) is not None
 
+    def variable_expression_eval(self):
+        """ Handles expressions that contains variable."""
+        value = self.expr_parser()
+        try:
+            output = 0
+            signs = []
+            while True:
+                current_value = next(value)
+                if current_value.isalpha():
+                    if not self.check_variable_name(current_value) or \
+                            current_value not in Calculator.var_value_dict:
+                        print(f'Variable -- {current_value} is unknown.')
+                        break
+                    else:
+                        final_sign = self.sign_calculator(signs)
+                        signs.clear()
+                        variable_value = int(Calculator.var_value_dict.get(current_value))
+                        output = self.calculation_helper(current_value=output,
+                                                         sign=final_sign,
+                                                         value_to_add_or_sub=variable_value)
+                elif current_value in SIGNS:
+                    signs.append(current_value)
+                else:
+                    final_sign = self.sign_calculator(signs)
+                    signs.clear()
+                    output = self.calculation_helper(current_value=output,
+                                                     sign=final_sign,
+                                                     value_to_add_or_sub=current_value)
+        except StopIteration:
+            print(output)
+
     def expr_evaluator(self):
-        """ Handles calculations. """
+        """ Handles calculations that doesn't involve variables. """
         value = self.expr_parser()
         try:
             result = 0
@@ -68,13 +123,18 @@ class Calculator:
                 else:
                     final_sign = self.sign_calculator(signs)
                     signs.clear()
-                    if final_sign == '+':
-                        result += int(current_value)
-                    elif final_sign == '-':
-                        result -= int(current_value)
-
+                    result = self.calculation_helper(result,
+                                                     final_sign, current_value)
         except StopIteration:
-            return result
+            print(result)
+
+    @staticmethod
+    def calculation_helper(current_value, sign, value_to_add_or_sub):
+        """ Helps the two module that handles calculation. """
+        if sign == '+':
+            return current_value + int(value_to_add_or_sub)
+        elif sign == '-':
+            return current_value - int(value_to_add_or_sub)
 
     @staticmethod
     def sign_calculator(signs: list):
@@ -125,7 +185,7 @@ def main():
             print(DESCRIPTION)
         else:
             expr_class = Calculator(user_expr)
-            print(expr_class.module_caller())
+            expr_class.module_caller()
 
 
 if __name__ == '__main__':
