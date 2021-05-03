@@ -15,42 +15,20 @@ commands = ['/help', '/exit']
 class Calculator:
     def __init__(self, expression: str):
         self.expression = expression
-        self.is_complex_expr = False
-        self.is_add = all((self.expression.count('+') >= 1,
-                           self.expression.count('-', 1) == 0))
-        self.is_subtract = all((self.expression.count('-', 1) == 1,
-                                self.expression.count('+', 1) == 0,
-                                not self.expression.startswith('-')))
         self.is_var = '=' in self.expression
-
-        self.is_complex()
-
-        self.single_expr = all((not self.is_add, not self.is_subtract,
-                                not self.is_complex, not self.is_var))
         self.var_value_dict = {}
 
-    def module_caller(self):
-        """ Decides which module to call"""
-        if self.is_add:
-            return self.add_nums()
-        elif self.is_subtract:
-            return self.subtract_nums()
-        elif self.is_complex_expr:
-            return self.complex_nums()
-        else:
-            return self.expression
-
-    def check_variable_val_name(self):
+    @staticmethod
+    def check_variable_val_name(val_name: str):
         """ Checks to see that the value of a variable is valid. """
-        return re.search(variable_value_ptn,
-                         self.expression[self.expression.index('=') + 1:].strip()) is not None
+        return re.search(variable_value_ptn, val_name) is not None
 
-    def check_variable_name(self):
+    @staticmethod
+    def check_variable_name(var_name: str):
         """ Checks to see that variable name is valid. """
-        return re.search(variable_pattern,
-                         self.expression[:self.expression.index('=')].strip()) is not None
+        return re.search(variable_pattern, var_name) is not None
 
-    def complex_nums(self):
+    def expr_evaluator(self):
         """ Deals with complex expressions. """
 
         value = self.expr_parser()
@@ -104,30 +82,6 @@ class Calculator:
             else:
                 index += 1
 
-    def subtract_nums(self):
-        """ Subtracts two or more numbers """
-        split_expr = list(filter(lambda x: x != '', self.expression.split('-')))
-        result = int(split_expr[0])
-        for _, num, in enumerate(split_expr[1:]):
-            result -= int(num.strip())
-        return result
-
-    def add_nums(self):
-        """ Add two or more numbers. """
-        split_expr = list(filter(lambda x: x != '', self.expression.split('+')))
-        return sum([int(num.strip()) for num in split_expr])
-
-    def is_complex(self):
-        """ Checks to see whether the provided expression
-        is a complex one.
-        An expression is considered to be complex when there are more than
-        a single minus (-) sign in it or both minus (-) and addition (+)
-        sign are present. """
-        if self.expression.count('-', 1) >= 1 and '+' in self.expression:
-            self.is_complex_expr = True
-        elif self.expression.count('-') > 1:
-            self.is_complex_expr = True
-
 
 def main():
 
@@ -146,9 +100,8 @@ def main():
             print(DESCRIPTION)
         else:
             expr_class = Calculator(user_expr)
-            print(expr_class.module_caller())
+            print(expr_class.expr_evaluator())
 
 
 if __name__ == '__main__':
-    ex = 'a =a2a'
-    print(Calculator(ex).check_variable_val_name())
+    main()
