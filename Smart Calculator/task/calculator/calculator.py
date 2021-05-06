@@ -137,9 +137,28 @@ class Calculator:
                 result = '-'
         return result
 
+    def expr_scanner(self):
+        """ Scans the provided expression replacing multiple minus signs
+        and addition signs present in it. """
+        expr = re.findall(expression_matcher_ptn, self.expression)
+        signs = []
+        result = ''
+        for _, sign_checker in enumerate(expr):
+            if sign_checker != ' ':
+                if sign_checker in SIGNS_PRIORITY.keys():
+                    signs.append(sign_checker)
+
+                elif sign_checker.isnumeric() or sign_checker.isalpha():
+                    final_sign = self.sign_calculator(signs)
+                    result += final_sign
+                    result += sign_checker
+                    signs.clear()
+        self.expression = result
+
     def infix_to_postfix(self):
         """ Transforms Infix expressions to Postfix expressions. """
         stack = deque()
+        self.expr_scanner()
         expression = re.findall(expression_matcher_ptn, self.expression)
         for expr in expression:
             if expr != ' ':
