@@ -34,7 +34,7 @@ class Calculator:
             self.var_request_handler()
 
         else:
-            self.variable_expression_eval()
+            self.expression_eval()
 
     def var_request_handler(self):
         """ Responds to when user is requesting to view the value of a
@@ -75,7 +75,7 @@ class Calculator:
         :returns False otherwise"""
         return re.search(variable_pattern, var_name) is not None
 
-    def variable_expression_eval(self):
+    def expression_eval(self):
         """ Handles expressions that contains variable."""
         value = self.expr_parser()
         try:
