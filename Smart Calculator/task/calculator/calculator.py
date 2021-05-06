@@ -20,7 +20,7 @@ variable_pattern = re.compile(r'^[a-zA-Z]+$')
 variable_value_ptn = re.compile(r'^[a-zA-Z]+$|^[\d]+$')
 variable_request = re.compile(r'^[a-zA-Z]+$')
 variable_expression_ptn = re.compile(r'^[\w +-]+[ +-]+[\w]$')
-expression_matcher_ptn = re.compile(r'[\w]+|[-+*/^ =()]')
+expression_matcher_ptn = re.compile(r'-[\w]+|[\w]+|[-+*/^ =()]')
 commands = ['/help', '/exit']
 
 
@@ -33,6 +33,7 @@ class Calculator:
         self.is_var_request = re.search(variable_request, self.expression)
         self.is_var_expression = re.search(variable_expression_ptn, self.expression)
         self.postfix_expr = ''
+        self.infix_to_postfix()
 
     def module_caller(self):
         """ Decides which module to call for calculation. """
@@ -147,17 +148,20 @@ class Calculator:
 
         for _, sign_checker in enumerate(expr):
             if sign_checker != ' ':
+                negative_num = sign_checker.startswith('-') and len(sign_checker) > 1
+                positive_num = sign_checker.startswith('+') and len(sign_checker) > 1
                 if sign_checker in SIGNS_PRIORITY.keys():
                     signs.append(sign_checker)
 
-                elif sign_checker.isnumeric() or sign_checker.isalpha() or sign_checker in parenthesis:
+                elif sign_checker.isnumeric() or sign_checker.isalpha() or sign_checker in parenthesis\
+                        or negative_num or positive_num:
                     if signs:
                         final_sign = self.sign_calculator(signs)
-                        result += final_sign
-                        result += sign_checker
+                        result += f'{final_sign} '
+                        result += f'{sign_checker} '
                         signs.clear()
                     else:
-                        result += sign_checker
+                        result += f'{sign_checker} '
 
         self.expression = result
 
@@ -167,8 +171,10 @@ class Calculator:
         self.expr_scanner()
         expression = re.findall(expression_matcher_ptn, self.expression)
         for expr in expression:
+            negative_num = expr.startswith('-') and len(expr) > 1
+            positive_num = expr.startswith('+') and len(expr) > 1
             if expr != ' ':
-                if expr.isnumeric() or expr.isalpha():
+                if expr.isnumeric() or expr.isalpha() or negative_num or positive_num:
                     self.postfix_expr += f'{expr} '
                 else:
                     if not stack:
@@ -211,8 +217,7 @@ class Calculator:
                 self.postfix_expr += f'{popped_item} '
 
     def expr_parser(self):
-        result = re.findall(expression_matcher_ptn, self.expression)
-        for expr in result:
+        for expr in self.postfix_expr.split():
             if expr != ' ':
                 yield expr
 
@@ -234,7 +239,6 @@ def main():
             print(DESCRIPTION)
         else:
             expr_class = Calculator(user_expr)
-            expr_class.infix_to_postfix()
             print(expr_class.postfix_expr)
 
 
