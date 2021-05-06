@@ -33,11 +33,8 @@ class Calculator:
         elif self.is_var_request:
             self.var_request_handler()
 
-        elif self.is_var_expression:
-            self.variable_expression_eval()
-
         else:
-            self.expr_evaluator()
+            self.variable_expression_eval()
 
     def var_request_handler(self):
         """ Responds to when user is requesting to view the value of a
@@ -108,25 +105,6 @@ class Calculator:
                                                      value_to_add_or_sub=current_value)
         except StopIteration:
             print(output)
-
-    def expr_evaluator(self):
-        """ Handles calculations that doesn't involve variables. """
-        value = self.expr_parser()
-        try:
-            result = 0
-            signs = []
-            while True:
-                current_value = next(value)
-                if current_value in SIGNS:
-                    signs.append(current_value)
-
-                else:
-                    final_sign = self.sign_calculator(signs)
-                    signs.clear()
-                    result = self.calculation_helper(result,
-                                                     final_sign, current_value)
-        except StopIteration:
-            print(result)
 
     @staticmethod
     def calculation_helper(current_value, sign, value_to_add_or_sub):
