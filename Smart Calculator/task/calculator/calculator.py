@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import re
+from collections import deque
 
 DESCRIPTION = 'A smart calculator capable of handling the following arithmetic operations:\n' \
               '1. Addition and subtraction of two or more numbers\n' \
@@ -7,13 +8,19 @@ DESCRIPTION = 'A smart calculator capable of handling the following arithmetic o
               'User is prompted to enter the expression they want to ' \
               'evaluate and the evaluation result is printed out.'
 
-SIGNS = ['*', '/', '+', '-', '^']
+# A dict of signs arranged from the lowest in rank to the highest
+SIGNS_PRIORITY = {'^': 0,
+                  '-': 1,
+                  '+': 1,
+                  '/': 3,
+                  '*': 4,
+                  }
 invalid_expressions = re.compile(r'^[+-]+$|[+-]$|^[\w\d ]+ [\w\d]+$')
 variable_pattern = re.compile(r'^[a-zA-Z]+$')
 variable_value_ptn = re.compile(r'^[a-zA-Z]+$|^[\d]+$')
 variable_request = re.compile(r'^[a-zA-Z]+$')
 variable_expression_ptn = re.compile(r'^[\w +-]+[ +-]+[\w]$')
-expression_matcher_ptn = re.compile(r'[\w]+|[-+ =]')
+expression_matcher_ptn = re.compile(r'[\w]+|[-+*/^ =()]')
 commands = ['/help', '/exit']
 
 
@@ -97,7 +104,7 @@ class Calculator:
                         output = self.calculation_helper(current_value=output,
                                                          sign=final_sign,
                                                          value_to_add_or_sub=variable_value)
-                elif current_value in SIGNS:
+                elif current_value in SIGNS_PRIORITY.keys():
                     signs.append(current_value)
                 else:
                     final_sign = self.sign_calculator(signs)
@@ -132,7 +139,48 @@ class Calculator:
 
     def infix_to_postfix(self):
         """ Transforms Infix expressions to Postfix expressions. """
-        pass
+        stack = deque()
+        expression = re.findall(expression_matcher_ptn, self.expression)
+        for expr in expression:
+            if expr != ' ':
+                if expr.isnumeric() or expr.isalpha():
+                    self.postfix_expr += f'{expr} '
+                else:
+                    if not stack:
+                        stack.append(expr)
+                    else:
+                        stack_top = stack[-1]
+                        stack_top_priority = SIGNS_PRIORITY.get(stack_top)
+                        expr_priority = SIGNS_PRIORITY.get(expr)
+                        if stack_top == '(' or expr == '(':
+                            stack.append(expr)
+
+                        elif expr == ')':
+                            while True and len(stack) > 0:
+                                check_stack = stack[-1]
+                                if check_stack != '(':
+                                    self.postfix_expr += f'{stack.pop()} '
+                                else:
+                                    stack.pop()
+                                    break
+
+                        elif expr_priority > stack_top_priority:
+                            stack.append(expr)
+
+                        elif expr_priority <= stack_top_priority:
+                            while True and len(stack) > 0:
+                                check_stack_top = stack[-1]
+                                if SIGNS_PRIORITY.get(check_stack_top) >= expr_priority and check_stack_top != '(':
+                                    self.postfix_expr += f'{stack.pop()} '
+                                else:
+                                    break
+                            else:
+                                stack.append(expr)
+
+        while len(stack) > 0:
+            popped_item = stack.pop()
+            if popped_item in SIGNS_PRIORITY.keys():
+                self.postfix_expr += f'{popped_item} '
 
     def expr_parser(self):
         result = re.findall(expression_matcher_ptn, self.expression)
@@ -158,7 +206,8 @@ def main():
             print(DESCRIPTION)
         else:
             expr_class = Calculator(user_expr)
-            expr_class.module_caller()
+            expr_class.infix_to_postfix()
+            print(expr_class.postfix_expr)
 
 
 if __name__ == '__main__':
