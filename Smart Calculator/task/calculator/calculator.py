@@ -7,12 +7,13 @@ DESCRIPTION = 'A smart calculator capable of handling the following arithmetic o
               'User is prompted to enter the expression they want to ' \
               'evaluate and the evaluation result is printed out.'
 
-SIGNS = ['-', '+']
+SIGNS = ['*', '/', '+', '-', '^']
 invalid_expressions = re.compile(r'^[+-]+$|[+-]$|^[\w\d ]+ [\w\d]+$')
 variable_pattern = re.compile(r'^[a-zA-Z]+$')
 variable_value_ptn = re.compile(r'^[a-zA-Z]+$|^[\d]+$')
 variable_request = re.compile(r'^[a-zA-Z]+$')
 variable_expression_ptn = re.compile(r'^[\w +-]+[ +-]+[\w]$')
+expression_matcher_ptn = re.compile(r'[\w]+|[-+ =]')
 commands = ['/help', '/exit']
 
 
@@ -24,6 +25,7 @@ class Calculator:
         self.is_var_declaration = '=' in self.expression
         self.is_var_request = re.search(variable_request, self.expression)
         self.is_var_expression = re.search(variable_expression_ptn, self.expression)
+        self.postfix_expr = ''
 
     def module_caller(self):
         """ Decides which module to call for calculation. """
@@ -128,22 +130,15 @@ class Calculator:
                 result = '-'
         return result
 
-    def expr_parser(self):
-        index = 0
-        while index < len(self.expression):
-            if self.expression[index] != ' ':
-                if index == len(self.expression) - 1:
-                    yield self.expression[index].strip()
-                    index += 1
+    def infix_to_postfix(self):
+        """ Transforms Infix expressions to Postfix expressions. """
+        pass
 
-                elif self.expression[index + 1].isnumeric():
-                    yield self.expression[index:index+2].strip()
-                    index += 2
-                else:
-                    yield self.expression[index].strip()
-                    index += 1
-            else:
-                index += 1
+    def expr_parser(self):
+        result = re.findall(expression_matcher_ptn, self.expression)
+        for expr in result:
+            if expr != ' ':
+                yield expr
 
 
 def main():
