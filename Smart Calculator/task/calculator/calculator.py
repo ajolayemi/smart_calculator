@@ -9,11 +9,11 @@ DESCRIPTION = 'A smart calculator capable of handling the following arithmetic o
               'evaluate and the evaluation result is printed out.'
 
 # A dict of signs arranged from the lowest in rank to the highest
-SIGNS_PRIORITY = {'^': 0,
-                  '-': 1,
+SIGNS_PRIORITY = {'-': 1,
                   '+': 1,
                   '/': 3,
                   '*': 4,
+                  '^': 5,
                   }
 invalid_expressions = re.compile(r'^[+-]+$|[+-]$|^[\w\d ]+ [\w\d]+$')
 variable_pattern = re.compile(r'^[a-zA-Z]+$')
@@ -140,19 +140,25 @@ class Calculator:
     def expr_scanner(self):
         """ Scans the provided expression replacing multiple minus signs
         and addition signs present in it. """
+        parenthesis = ['(', ')']
         expr = re.findall(expression_matcher_ptn, self.expression)
         signs = []
         result = ''
+
         for _, sign_checker in enumerate(expr):
             if sign_checker != ' ':
                 if sign_checker in SIGNS_PRIORITY.keys():
                     signs.append(sign_checker)
 
-                elif sign_checker.isnumeric() or sign_checker.isalpha():
-                    final_sign = self.sign_calculator(signs)
-                    result += final_sign
-                    result += sign_checker
-                    signs.clear()
+                elif sign_checker.isnumeric() or sign_checker.isalpha() or sign_checker in parenthesis:
+                    if signs:
+                        final_sign = self.sign_calculator(signs)
+                        result += final_sign
+                        result += sign_checker
+                        signs.clear()
+                    else:
+                        result += sign_checker
+
         self.expression = result
 
     def infix_to_postfix(self):
@@ -169,12 +175,9 @@ class Calculator:
                         stack.append(expr)
                     else:
                         stack_top = stack[-1]
-                        stack_top_priority = SIGNS_PRIORITY.get(stack_top)
-                        expr_priority = SIGNS_PRIORITY.get(expr)
-                        if stack_top == '(' or expr == '(':
-                            stack.append(expr)
-
-                        elif expr == ')':
+                        stack_top_priority = SIGNS_PRIORITY.get(stack_top, 0)
+                        expr_priority = SIGNS_PRIORITY.get(expr, 0)
+                        if expr == ')':
                             while True and len(stack) > 0:
                                 check_stack = stack[-1]
                                 if check_stack != '(':
@@ -183,13 +186,19 @@ class Calculator:
                                     stack.pop()
                                     break
 
+                        elif stack_top == '(' or expr == '(':
+                            stack.append(expr)
+
                         elif expr_priority > stack_top_priority:
                             stack.append(expr)
 
                         elif expr_priority <= stack_top_priority:
                             while True and len(stack) > 0:
                                 check_stack_top = stack[-1]
-                                if SIGNS_PRIORITY.get(check_stack_top) >= expr_priority and check_stack_top != '(':
+                                if check_stack_top == '(':
+                                    break
+
+                                elif SIGNS_PRIORITY.get(check_stack_top) >= expr_priority:
                                     self.postfix_expr += f'{stack.pop()} '
                                 else:
                                     break
