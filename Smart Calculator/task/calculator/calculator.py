@@ -15,7 +15,7 @@ SIGNS_PRIORITY = {'-': 1,
                   '*': 4,
                   '^': 5,
                   }
-invalid_expressions = re.compile(r'^[+-]+$|[+-]$|^[\w\d ]+ [\w\d]+$')
+invalid_expressions = re.compile(r'^[+-]+$|[+-]$|^[\w\d ]+ [\w\d]+$|\*{2,}|\^{2,}|/{2,}')
 variable_pattern = re.compile(r'^[a-zA-Z]+$')
 variable_value_ptn = re.compile(r'^[a-zA-Z]+$|^[\d]+$')
 variable_request = re.compile(r'^[a-zA-Z]+$')
@@ -33,7 +33,6 @@ class Calculator:
         self.is_var_request = re.search(variable_request, self.expression)
         self.is_var_expression = re.search(variable_expression_ptn, self.expression)
         self.postfix_expr = ''
-        self.infix_to_postfix()
 
     def module_caller(self):
         """ Decides which module to call for calculation. """
@@ -89,8 +88,7 @@ class Calculator:
         """ Handles expressions that contains variable."""
         value = self.expr_parser()
         try:
-            output = 0
-            signs = []
+            stack = deque()
             while True:
                 current_value = next(value)
                 if current_value.isalpha():
@@ -99,30 +97,39 @@ class Calculator:
                         print(f'Variable -- {current_value} is unknown.')
                         break
                     else:
-                        final_sign = self.sign_calculator(signs)
-                        signs.clear()
                         variable_value = int(Calculator.var_value_dict.get(current_value))
-                        output = self.calculation_helper(current_value=output,
-                                                         sign=final_sign,
-                                                         value_to_add_or_sub=variable_value)
+                        stack.append(variable_value)
+
                 elif current_value in SIGNS_PRIORITY.keys():
-                    signs.append(current_value)
+                    if len(stack) == 1:
+                        stack.append(self.calculation_helper(sign=current_value,
+                                                             value_1=0,
+                                                             value_2=int(stack.pop())))
+                    elif len(stack) > 1:
+                        second_val = stack.pop()
+                        first_val = stack.pop()
+                        stack.append(self.calculation_helper(sign=current_value,
+                                                             value_1=first_val,
+                                                             value_2=second_val))
                 else:
-                    final_sign = self.sign_calculator(signs)
-                    signs.clear()
-                    output = self.calculation_helper(current_value=output,
-                                                     sign=final_sign,
-                                                     value_to_add_or_sub=current_value)
+                    stack.append(current_value)
+
         except StopIteration:
-            print(output)
+            print(stack.pop())
 
     @staticmethod
-    def calculation_helper(current_value, sign, value_to_add_or_sub):
+    def calculation_helper(sign, value_1, value_2):
         """ Helps the two module that handles calculation. """
         if sign == '+':
-            return current_value + int(value_to_add_or_sub)
+            return int(value_1) + int(value_2)
         elif sign == '-':
-            return current_value - int(value_to_add_or_sub)
+            return int(value_1) - int(value_2)
+        elif sign == '/':
+            return int(value_1) / int(value_2)
+        elif sign == '*':
+            return int(value_1) * int(value_2)
+        elif sign == '^':
+            return pow(base=int(value_1), exp=int(value_2))
 
     @staticmethod
     def sign_calculator(signs: list):
@@ -145,25 +152,26 @@ class Calculator:
         expr = re.findall(expression_matcher_ptn, self.expression)
         signs = []
         result = ''
+        if not self.is_var_declaration and not self.is_var_request:
 
-        for _, sign_checker in enumerate(expr):
-            if sign_checker != ' ':
-                negative_num = sign_checker.startswith('-') and len(sign_checker) > 1
-                positive_num = sign_checker.startswith('+') and len(sign_checker) > 1
-                if sign_checker in SIGNS_PRIORITY.keys():
-                    signs.append(sign_checker)
+            for _, sign_checker in enumerate(expr):
+                if sign_checker != ' ':
+                    negative_num = sign_checker.startswith('-') and len(sign_checker) > 1
+                    positive_num = sign_checker.startswith('+') and len(sign_checker) > 1
+                    if sign_checker in SIGNS_PRIORITY.keys():
+                        signs.append(sign_checker)
 
-                elif sign_checker.isnumeric() or sign_checker.isalpha() or sign_checker in parenthesis\
-                        or negative_num or positive_num:
-                    if signs:
-                        final_sign = self.sign_calculator(signs)
-                        result += f'{final_sign} '
-                        result += f'{sign_checker} '
-                        signs.clear()
-                    else:
-                        result += f'{sign_checker} '
+                    elif sign_checker.isnumeric() or sign_checker.isalpha() or sign_checker in parenthesis\
+                            or negative_num or positive_num:
+                        if signs:
+                            final_sign = self.sign_calculator(signs)
+                            result += f'{final_sign} '
+                            result += f'{sign_checker} '
+                            signs.clear()
+                        else:
+                            result += f'{sign_checker} '
 
-        self.expression = result
+            self.expression = result
 
     def infix_to_postfix(self):
         """ Transforms Infix expressions to Postfix expressions. """
@@ -202,11 +210,13 @@ class Calculator:
                             while True and len(stack) > 0:
                                 check_stack_top = stack[-1]
                                 if check_stack_top == '(':
+                                    stack.append(expr)
                                     break
 
                                 elif SIGNS_PRIORITY.get(check_stack_top) >= expr_priority:
                                     self.postfix_expr += f'{stack.pop()} '
                                 else:
+                                    stack.append(expr)
                                     break
                             else:
                                 stack.append(expr)
@@ -217,6 +227,7 @@ class Calculator:
                 self.postfix_expr += f'{popped_item} '
 
     def expr_parser(self):
+        self.infix_to_postfix()
         for expr in self.postfix_expr.split():
             if expr != ' ':
                 yield expr
@@ -228,7 +239,9 @@ def main():
         user_expr = input()
         if user_expr.startswith('/') and user_expr not in commands:
             print('Unknown command')
-        elif re.search(invalid_expressions, user_expr):
+        elif re.search(invalid_expressions, user_expr)\
+                or user_expr.count('(') > user_expr.count(')')\
+                or user_expr.count(')') > user_expr.count('('):
             print('Invalid expression')
         elif not user_expr:
             continue
@@ -239,7 +252,7 @@ def main():
             print(DESCRIPTION)
         else:
             expr_class = Calculator(user_expr)
-            print(expr_class.postfix_expr)
+            expr_class.module_caller()
 
 
 if __name__ == '__main__':
